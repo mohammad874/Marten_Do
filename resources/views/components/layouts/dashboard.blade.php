@@ -11,6 +11,11 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    {{-- Alpine ships bundled with Livewire (e.g. Breeze's Livewire stack), so load Livewire's assets when it is installed. Without Livewire, import Alpine in resources/js/app.js instead. Never do both: Alpine would start twice. --}}
+    @if (class_exists(\Livewire\Livewire::class))
+        @livewireStyles
+    @endif
+
     <style>[x-cloak] { display: none !important; }</style>
 </head>
 <body class="h-full font-sans text-slate-900 antialiased">
@@ -58,5 +63,9 @@
             </main>
         </div>
     </div>
+
+    @if (class_exists(\Livewire\Livewire::class))
+        @livewireScripts
+    @endif
 </body>
 </html>
