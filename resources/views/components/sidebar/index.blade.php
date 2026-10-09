@@ -38,9 +38,9 @@
     <div class="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
         <a
             href="{{ route('dashboard') }}"
-            class="flex items-center gap-x-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+            class="flex items-center gap-x-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
         >
-            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-400 text-lg font-bold text-slate-900" aria-hidden="true">M</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-red-1 text-xl font-bold text-white" aria-hidden="true">M</span>
             <span class="leading-tight">
                 <span class="block text-sm font-semibold text-white">Marten Flow</span>
                 <span class="block text-xs text-slate-400">Marten Do Operations</span>
@@ -49,7 +49,7 @@
 
         <button
             type="button"
-            class="-mr-2 rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 lg:hidden"
+            class="-mr-2 rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2 lg:hidden"
             x-on:click="sidebarOpen = false"
         >
             <span class="sr-only">Close sidebar</span>
@@ -78,7 +78,7 @@
         {{-- 2. Strategic Intelligence: CTMO and COO only. --}}
         @can('view_strategic_metrics')
             <div>
-                <h2 class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Executive</h2>
+                <h2 class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Executive</h2>
                 <ul role="list" class="space-y-1">
                     <li>
                         <x-sidebar.link :href="route('strategic.index')" :active="request()->routeIs('strategic.*')" hint="CAC · LTV · Runway">
@@ -96,7 +96,7 @@
         {{-- 3-5. Operations: fleet, driver cash and support. --}}
         @canany(['manage_driver_shifts', 'collect_driver_cash', 'view_support_tickets'])
             <div>
-                <h2 class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Operations</h2>
+                <h2 class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Operations</h2>
                 <ul role="list" class="space-y-1">
                     @can('manage_driver_shifts')
                         <li>
@@ -146,7 +146,7 @@
         {{-- 6. Operational Ledger & Cashflow: Accountant (and executives). --}}
         @can('view_daily_cashflow')
             <div>
-                <h2 class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Finance</h2>
+                <h2 class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Finance</h2>
                 <ul role="list" class="space-y-1">
                     <li>
                         <x-sidebar.link :href="route('ledger.index')" :active="request()->routeIs('ledger.*')" hint="Cash flow & OpEx">
@@ -165,7 +165,7 @@
     {{-- Signed-in user --}}
     <div class="shrink-0 border-t border-white/10 p-4">
         <div class="flex items-center gap-x-3">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-semibold text-white" aria-hidden="true">{{ $initials }}</span>
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-semibold text-white ring-2 ring-brand-red-1" aria-hidden="true">{{ $initials }}</span>
 
             <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium text-white">{{ $user->name }}</p>
@@ -177,7 +177,7 @@
                     @csrf
                     <button
                         type="submit"
-                        class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                        class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
                     >
                         <span class="sr-only">Sign out</span>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">

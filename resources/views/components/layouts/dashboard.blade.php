@@ -33,10 +33,11 @@
 
         <div class="lg:pl-72">
             {{-- Mobile top bar: the only way to open the drawer below `lg`. --}}
-            <header class="sticky top-0 z-30 flex h-14 items-center gap-x-3 border-b border-slate-200 bg-white px-4 lg:hidden">
+            <header class="sticky top-0 z-30 flex h-14 items-center gap-x-3 border-b border-t-4 border-slate-200 border-t-brand-red-1 bg-white px-4 lg:hidden">
+                {{-- Primary action on mobile. Icon-only on purpose: white on the brand reds is ~3.7-4.0:1, fine for graphics (3:1) but not for small text. --}}
                 <button
                     type="button"
-                    class="-ml-2 rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                    class="-ml-1 rounded-lg bg-brand-red-1 p-2 text-white transition-colors hover:bg-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-1 focus-visible:ring-offset-2"
                     aria-controls="primary-sidebar"
                     x-bind:aria-expanded="sidebarOpen.toString()"
                     x-on:click="sidebarOpen = true"
