@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Marten Flow · Dashboard prototype</title>
+
+    <!-- Tailwind CSS (Play CDN: for prototypes only) -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Marten Do corporate brand palette. Use these two reds only.
+                        brand: {
+                            'red-1': '#EE3A25', // active links, primary icons, borders
+                            'red-2': '#EB4C40', // hover effects, secondary accents
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>[x-cloak] { display: none !important; }</style>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+</head>
+<body
+    class="h-full font-sans text-slate-900 antialiased"
+    x-data="marten()"
+    x-on:keydown.escape.window="closeSidebar()"
+    x-on:hashchange.window="syncFromHash()"
+>
+    <!-- Mobile backdrop: tap to close the drawer -->
+    <div
+        x-cloak
+        x-show="sidebarOpen"
+        x-transition.opacity.duration.200ms
+        x-on:click="closeSidebar()"
+        class="fixed inset-0 z-40 bg-slate-900/60 lg:hidden"
+        aria-hidden="true"
+    ></div>
+
+    <!-- Sidebar: fixed on lg+, off-canvas drawer below. Alpine only flips data-open. -->
+    <aside
+        id="sidebar"
+        x-bind:data-open="sidebarOpen ? 'true' : 'false'"
+        data-open="false"
+        class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-slate-900 transition-[transform,visibility] duration-200 ease-in-out max-lg:data-[open=false]:invisible max-lg:data-[open=false]:-translate-x-full"
+        aria-label="Sidebar"
+    >
+        <!-- Brand -->
+        <div class="flex h-16 shrink-0 items-center justify-between border-b border-white/10 px-5">
+            <a
+                href="#dashboard"
+                x-on:click.prevent="go('dashboard')"
+                class="flex items-center gap-x-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
+            >
+                <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-red-1 text-xl font-bold text-white" aria-hidden="true">M</span>
+                <span class="leading-tight">
+                    <span class="block text-sm font-semibold text-white">Marten Flow</span>
+                    <span class="block text-xs text-slate-400">Marten Do Operations</span>
+                </span>
+            </a>
+
+            <button
+                type="button"
+                x-ref="closeBtn"
+                x-on:click="closeSidebar()"
+                class="-mr-2 rounded-lg p-2 text-slate-400 transition-colors hover:bg-brand-red-2/10 hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2 lg:hidden"
+            >
+                <span class="sr-only">Close sidebar</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Navigation: every system role's links, so the complete UI is visible -->
+        <nav class="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-5" aria-label="Primary">
+            <template x-for="section in nav" :key="section.id">
+                <div>
+                    <h2
+                        x-show="section.title"
+                        x-text="section.title"
+                        class="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400"
+                    ></h2>
+                    <ul role="list" class="flex flex-col gap-1">
+                        <template x-for="item in section.items" :key="item.id">
+                            <li>
+                                <a
+                                    x-bind:href="'#' + item.id"
+                                    x-on:click.prevent="go(item.id)"
+                                    x-bind:aria-current="page === item.id ? 'page' : null"
+                                    class="group relative flex items-center gap-x-3 rounded-lg px-3 py-2 text-slate-300 transition-colors hover:bg-brand-red-2/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2 aria-[current=page]:bg-brand-red-1/15 aria-[current=page]:text-white"
+                                >
+                                    <!-- Active indicator: Red 1 -->
+                                    <span class="absolute inset-y-2 left-0 hidden w-[3px] rounded-full bg-brand-red-1 group-aria-[current=page]:block" aria-hidden="true"></span>
+
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+                                        class="h-5 w-5 shrink-0 text-slate-400 transition-colors group-hover:text-brand-red-2 group-aria-[current=page]:text-brand-red-1"
+                                        aria-hidden="true"
+                                        x-html="icons[item.icon]"
+                                    ></svg>
+
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block text-sm font-medium leading-snug" x-text="item.label"></span>
+                                        <span class="block truncate text-xs text-slate-400" x-text="item.roles"></span>
+                                    </span>
+                                </a>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+        </nav>
+
+        <!-- Signed-in user (dummy) -->
+        <div class="shrink-0 border-t border-white/10 p-4">
+            <div class="flex items-center gap-x-3">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-semibold text-white ring-2 ring-brand-red-1" aria-hidden="true">MF</span>
+                <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium text-white">Prototype user</p>
+                    <p class="truncate text-xs text-slate-400">All roles preview</p>
+                </div>
+                <button
+                    type="button"
+                    x-on:click="notify('Sign out is disabled in the prototype')"
+                    class="rounded-lg p-2 text-slate-400 transition-colors hover:bg-brand-red-2/10 hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
+                >
+                    <span class="sr-only">Sign out</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main column -->
+    <div class="lg:pl-72">
+        <!-- Mobile top bar: hamburger opens the drawer -->
+        <header class="sticky top-0 z-30 flex h-14 items-center gap-x-3 border-b border-t-4 border-slate-200 border-t-brand-red-1 bg-white px-4 lg:hidden">
+            <button
+                type="button"
+                x-ref="menuBtn"
+                aria-controls="sidebar"
+                x-bind:aria-expanded="sidebarOpen.toString()"
+                x-on:click="openSidebar()"
+                class="-ml-1 rounded-lg bg-brand-red-1 p-2 text-white transition-colors hover:bg-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-1 focus-visible:ring-offset-2"
+            >
+                <span class="sr-only">Open sidebar</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6" aria-hidden="true">
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </button>
+            <span class="text-sm font-semibold">Marten Flow</span>
+            <span class="ml-auto truncate text-sm text-slate-600" x-text="current.label"></span>
+        </header>
+
+        <main class="px-4 py-6 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-6xl">
+                <!-- Page header -->
+                <header class="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-5">
+                    <div>
+                        <p class="text-sm text-slate-600">Marten Flow <span aria-hidden="true">/</span> <span x-text="current.label"></span></p>
+                        <h1 class="mt-1 flex items-center gap-x-3 text-2xl font-semibold tracking-tight">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+                                class="h-7 w-7 shrink-0 text-brand-red-1" aria-hidden="true"
+                                x-html="icons[current.icon]"
+                            ></svg>
+                            <span x-text="current.label"></span>
+                        </h1>
+                        <p class="mt-1 text-sm text-slate-600" x-text="current.sub"></p>
+                    </div>
+                    <p class="rounded-full border border-brand-red-1 bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                        <span class="text-slate-600">Visible to</span>
+                        <span class="font-semibold" x-text="current.roles"></span>
+                    </p>
+                </header>
+
+                <!-- Dashboard (Home) -->
+                <section x-cloak x-show="page === 'dashboard'" aria-label="Dashboard">
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <template x-for="k in kpis" :key="k.label">
+                            <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-5 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-sm font-medium text-slate-600" x-text="k.label"></p>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+                                        class="h-5 w-5 text-brand-red-1" aria-hidden="true"
+                                        x-html="icons[k.icon]"
+                                    ></svg>
+                                </div>
+                                <p class="mt-3 text-3xl font-bold tracking-tight" x-text="k.value"></p>
+                                <p class="mt-1 text-sm text-slate-600" x-text="k.delta"></p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <h2 class="border-b border-slate-200 px-5 py-4 text-sm font-semibold">Recent activity</h2>
+                        <ul role="list" class="divide-y divide-slate-100">
+                            <template x-for="a in activity" :key="a.time + a.text">
+                                <li class="flex items-start gap-x-3 px-5 py-3 transition-colors hover:bg-brand-red-2/5">
+                                    <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-red-2" aria-hidden="true"></span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm" x-text="a.text"></p>
+                                        <p class="text-xs text-slate-600" x-text="a.by"></p>
+                                    </div>
+                                    <time class="text-xs text-slate-600" x-text="a.time"></time>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Strategic Intelligence (Metrics) -->
+                <section x-cloak x-show="page === 'strategic'" aria-label="Strategic Intelligence">
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <template x-for="m in metrics" :key="m.label">
+                            <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-6 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
+                                <p class="text-sm font-medium text-slate-600" x-text="m.label"></p>
+                                <p class="mt-2 text-4xl font-bold tracking-tight text-brand-red-1" x-text="m.value"></p>
+                                <p class="mt-2 text-sm text-slate-600" x-text="m.note"></p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="mt-6 grid gap-4 lg:grid-cols-3">
+                        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
+                            <h2 class="text-sm font-semibold">New customers per month</h2>
+                            <p class="text-xs text-slate-600">Dummy data, in hundreds</p>
+                            <div
+                                class="mt-5 flex h-40 items-end gap-3"
+                                role="img"
+                                aria-label="Bar chart: new customers per month, rising from 46 in May to 84 in October"
+                            >
+                                <template x-for="b in bars" :key="b.m">
+                                    <div
+                                        class="flex-1 rounded-t bg-brand-red-1 transition-colors hover:bg-brand-red-2"
+                                        x-bind:style="'height:' + b.v + '%'"
+                                        x-bind:title="b.m + ': ' + b.v"
+                                    ></div>
+                                </template>
+                            </div>
+                            <div class="mt-2 flex gap-3" aria-hidden="true">
+                                <template x-for="b in bars" :key="b.m">
+                                    <span class="flex-1 text-center text-xs text-slate-600" x-text="b.m"></span>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <h2 class="text-sm font-semibold">Runway</h2>
+                            <p class="text-xs text-slate-600">14.5 of a 24 month target</p>
+                            <div
+                                class="mt-5 h-3 overflow-hidden rounded-full bg-slate-200"
+                                role="progressbar" aria-label="Runway progress"
+                                aria-valuemin="0" aria-valuemax="100" aria-valuenow="60"
+                            >
+                                <div class="h-full w-[60%] rounded-full bg-brand-red-1"></div>
+                            </div>
+                            <dl class="mt-5 space-y-2 text-sm">
+                                <div class="flex justify-between"><dt class="text-slate-600">Monthly burn</dt><dd class="font-medium">$38,400</dd></div>
+                                <div class="flex justify-between"><dt class="text-slate-600">Cash at bank</dt><dd class="font-medium">$556,800</dd></div>
+                                <div class="flex justify-between"><dt class="text-slate-600">LTV : CAC</dt><dd class="font-medium">14.7 : 1</dd></div>
+                            </dl>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Fleet & Shifts -->
+                <section x-cloak x-show="page === 'fleet'" aria-label="Fleet and Shifts">
+                    <div class="relative overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Driver</th>
+                                    <th scope="col" class="px-4 py-3">Zone</th>
+                                    <th scope="col" class="px-4 py-3">Shift</th>
+                                    <th scope="col" class="px-4 py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="d in drivers" :key="d.name">
+                                    <tr class="transition-colors hover:bg-brand-red-2/5">
+                                        <td class="whitespace-nowrap px-4 py-3 font-medium" x-text="d.name"></td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-slate-700" x-text="d.zone"></td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-slate-700" x-text="d.shift"></td>
+                                        <td class="whitespace-nowrap px-4 py-3">
+                                            <span x-bind:class="chip(d.status)">
+                                                <span class="h-1.5 w-1.5 rounded-full" x-bind:class="dot(d.status)"></span>
+                                                <span x-text="d.status"></span>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-3 text-xs text-slate-600">Showing 6 of 42 drivers. Dummy data.</p>
+                </section>
+
+                <!-- Driver Cash Hand-in -->
+                <section x-cloak x-show="page === 'cash'" aria-label="Driver Cash Hand-in">
+                    <div class="relative overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Driver</th>
+                                    <th scope="col" class="px-4 py-3 text-right">Expected</th>
+                                    <th scope="col" class="px-4 py-3 text-right">Handed in</th>
+                                    <th scope="col" class="px-4 py-3 text-right">Difference</th>
+                                    <th scope="col" class="px-4 py-3">Status</th>
+                                    <th scope="col" class="px-4 py-3"><span class="sr-only">Action</span></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="r in cash" :key="r.driver">
+                                    <tr class="transition-colors hover:bg-brand-red-2/5">
+                                        <td class="whitespace-nowrap px-4 py-3 font-medium" x-text="r.driver"></td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums" x-text="money(r.expected)"></td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums" x-text="money(r.handed)"></td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums" x-bind:class="r.handed < r.expected ? 'font-semibold' : 'text-slate-700'" x-text="money(r.handed - r.expected)"></td>
+                                        <td class="whitespace-nowrap px-4 py-3">
+                                            <span x-bind:class="chip(r.status)">
+                                                <span class="h-1.5 w-1.5 rounded-full" x-bind:class="dot(r.status)"></span>
+                                                <span x-text="r.status"></span>
+                                            </span>
+                                        </td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right">
+                                            <button
+                                                type="button"
+                                                x-show="r.status !== 'Confirmed'"
+                                                x-on:click="confirmCash(r)"
+                                                class="rounded-lg border border-brand-red-1 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 transition-colors hover:border-brand-red-2 hover:bg-brand-red-2/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-1 focus-visible:ring-offset-2"
+                                            >Confirm</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                            <tfoot class="border-t-2 border-slate-200 bg-slate-50 text-sm font-semibold">
+                                <tr>
+                                    <th scope="row" class="px-4 py-3 text-left">Totals</th>
+                                    <td class="px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.expected)"></td>
+                                    <td class="px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.handed)"></td>
+                                    <td class="px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.handed - cashTotals.expected)"></td>
+                                    <td class="px-4 py-3" colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Customer Support Desk -->
+                <section x-cloak x-show="page === 'support'" aria-label="Customer Support Desk">
+                    <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 border-l-4 border-l-brand-red-1 bg-white p-5 shadow-sm">
+                        <div>
+                            <h2 class="text-sm font-semibold">Rescue Button</h2>
+                            <p class="mt-1 max-w-xl text-sm text-slate-600">Issue emergency compensation directly to a customer. Demo only: nothing is sent.</p>
+                        </div>
+                        <button
+                            type="button"
+                            x-on:click="notify('Rescue compensation issued (demo)')"
+                            class="inline-flex items-center gap-x-2 rounded-lg bg-brand-red-1 px-5 py-3 text-xl font-bold text-white transition-colors hover:bg-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-1 focus-visible:ring-offset-2"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true" x-html="icons.lifebuoy"></svg>
+                            Rescue
+                        </button>
+                    </div>
+
+                    <div class="relative overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Ticket</th>
+                                    <th scope="col" class="px-4 py-3">Customer</th>
+                                    <th scope="col" class="px-4 py-3">Issue</th>
+                                    <th scope="col" class="px-4 py-3">Priority</th>
+                                    <th scope="col" class="px-4 py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="t in tickets" :key="t.id">
+                                    <tr class="transition-colors hover:bg-brand-red-2/5">
+                                        <td class="whitespace-nowrap px-4 py-3 font-medium tabular-nums" x-text="t.id"></td>
+                                        <td class="whitespace-nowrap px-4 py-3" x-text="t.customer"></td>
+                                        <td class="px-4 py-3 text-slate-700" x-text="t.issue"></td>
+                                        <td class="whitespace-nowrap px-4 py-3">
+                                            <span x-bind:class="chip(t.priority)">
+                                                <span class="h-1.5 w-1.5 rounded-full" x-bind:class="dot(t.priority)"></span>
+                                                <span x-text="t.priority"></span>
+                                            </span>
+                                        </td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-slate-700" x-text="t.status"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Operational Ledger -->
+                <section x-cloak x-show="page === 'ledger'" aria-label="Operational Ledger">
+                    <div class="grid gap-4 sm:grid-cols-3">
+                        <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-5 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
+                            <p class="text-sm font-medium text-slate-600">Cash in</p>
+                            <p class="mt-2 text-3xl font-bold tracking-tight" x-text="money(ledgerIn)"></p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-5 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
+                            <p class="text-sm font-medium text-slate-600">Cash out</p>
+                            <p class="mt-2 text-3xl font-bold tracking-tight" x-text="money(ledgerOut)"></p>
+                        </div>
+                        <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-5 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
+                            <p class="text-sm font-medium text-slate-600">Net</p>
+                            <p class="mt-2 text-3xl font-bold tracking-tight" x-text="money(ledgerIn + ledgerOut)"></p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 relative overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                            <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Date</th>
+                                    <th scope="col" class="px-4 py-3">Description</th>
+                                    <th scope="col" class="px-4 py-3">Category</th>
+                                    <th scope="col" class="px-4 py-3 text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="l in ledger" :key="l.date + l.desc">
+                                    <tr class="transition-colors hover:bg-brand-red-2/5">
+                                        <td class="whitespace-nowrap px-4 py-3 text-slate-700" x-text="l.date"></td>
+                                        <td class="px-4 py-3 font-medium" x-text="l.desc"></td>
+                                        <td class="whitespace-nowrap px-4 py-3">
+                                            <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700" x-text="l.category"></span>
+                                        </td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums" x-text="money(l.amount)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <p class="mt-10 text-xs text-slate-600">Marten Flow prototype. All figures and names are dummy data.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast -->
+    <div
+        x-cloak
+        x-show="toast"
+        x-transition
+        role="status"
+        class="fixed bottom-4 right-4 z-[60] max-w-sm rounded-lg border-l-4 border-brand-red-1 bg-slate-900 px-4 py-3 text-sm text-white shadow-lg"
+        x-text="toast"
+    ></div>
+
+    <script>
+        function marten() {
+            return {
+                sidebarOpen: false,
+                page: 'dashboard',
+                toast: '',
+                toastTimer: null,
+
+                icons: {
+                    home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+                    trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+                    truck: '<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+                    inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+                    lifebuoy: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/>',
+                    book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+                    dollar: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+                    package: '<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+                },
+
+                nav: [
+                    { id: 'overview', title: null, items: [
+                        { id: 'dashboard', label: 'Dashboard', sub: 'Home: today at a glance', roles: 'All roles', icon: 'home' },
+                    ] },
+                    { id: 'executive', title: 'Executive', items: [
+                        { id: 'strategic', label: 'Strategic Intelligence', sub: 'Metrics: CAC, LTV and runway', roles: 'CTMO · COO', icon: 'trend' },
+                    ] },
+                    { id: 'operations', title: 'Operations', items: [
+                        { id: 'fleet', label: 'Fleet & Shifts', sub: 'Driver shifts and fleet status', roles: 'Boss Delivery', icon: 'truck' },
+                        { id: 'cash', label: 'Driver Cash Hand-in', sub: 'Daily driver cash collection', roles: 'Boss Delivery', icon: 'inbox' },
+                        { id: 'support', label: 'Customer Support Desk', sub: 'Tickets and emergency compensation', roles: 'Call Center Supervisor', icon: 'lifebuoy' },
+                    ] },
+                    { id: 'finance', title: 'Finance', items: [
+                        { id: 'ledger', label: 'Operational Ledger', sub: 'Cash flow, petty cash and OpEx', roles: 'Accountant', icon: 'book' },
+                    ] },
+                ],
+
+                kpis: [
+                    { label: 'Orders today', value: '1,284', delta: '+6.2% vs yesterday', icon: 'package' },
+                    { label: 'Drivers on shift', value: '38 / 42', delta: '2 running late', icon: 'truck' },
+                    { label: 'Cash to reconcile', value: '$4,820', delta: '7 hand-ins pending', icon: 'dollar' },
+                    { label: 'Open tickets', value: '12', delta: '3 high priority', icon: 'lifebuoy' },
+                ],
+                activity: [
+                    { time: '09:42', text: 'Khaled M. handed in $412.50', by: 'Boss Delivery' },
+                    { time: '09:15', text: 'Ticket #1042 escalated to high priority', by: 'Call Center Supervisor' },
+                    { time: '08:50', text: 'Zone B shift roster published', by: 'Boss Delivery' },
+                    { time: '08:05', text: 'Petty cash expense logged: fuel $64.00', by: 'Accountant' },
+                ],
+
+                metrics: [
+                    { label: 'CAC', value: '$4.20', note: 'Customer acquisition cost, down 8% vs last month' },
+                    { label: 'LTV', value: '$61.80', note: 'Lifetime value per customer, up 5%' },
+                    { label: 'Runway', value: '14.5 mo', note: 'At the current monthly burn' },
+                ],
+                bars: [
+                    { m: 'May', v: 46 }, { m: 'Jun', v: 54 }, { m: 'Jul', v: 61 },
+                    { m: 'Aug', v: 58 }, { m: 'Sep', v: 72 }, { m: 'Oct', v: 84 },
+                ],
+
+                drivers: [
+                    { name: 'Khaled M.', zone: 'Zone A', shift: '07:00 – 15:00', status: 'On shift' },
+                    { name: 'Omar S.', zone: 'Zone A', shift: '07:00 – 15:00', status: 'On shift' },
+                    { name: 'Yousef H.', zone: 'Zone B', shift: '09:00 – 17:00', status: 'Late' },
+                    { name: 'Sami R.', zone: 'Zone B', shift: '09:00 – 17:00', status: 'On shift' },
+                    { name: 'Tarek N.', zone: 'Zone C', shift: '15:00 – 23:00', status: 'Off' },
+                    { name: 'Bassel A.', zone: 'Zone C', shift: '15:00 – 23:00', status: 'Off' },
+                ],
+
+                cash: [
+                    { driver: 'Khaled M.', expected: 412.50, handed: 412.50, status: 'Confirmed' },
+                    { driver: 'Omar S.', expected: 380.00, handed: 380.00, status: 'Pending' },
+                    { driver: 'Yousef H.', expected: 295.75, handed: 270.00, status: 'Short' },
+                    { driver: 'Sami R.', expected: 510.25, handed: 510.25, status: 'Pending' },
+                    { driver: 'Rami F.', expected: 188.00, handed: 188.00, status: 'Pending' },
+                ],
+
+                tickets: [
+                    { id: '#1042', customer: 'Layla D.', issue: 'Order delivered cold', priority: 'High', status: 'Open' },
+                    { id: '#1041', customer: 'Nadim K.', issue: 'Wrong item in the order', priority: 'Medium', status: 'Open' },
+                    { id: '#1039', customer: 'Hana T.', issue: 'Driver could not find the address', priority: 'Low', status: 'In progress' },
+                    { id: '#1036', customer: 'Walid S.', issue: 'Late delivery (45 minutes)', priority: 'High', status: 'Open' },
+                    { id: '#1033', customer: 'Dina M.', issue: 'Refund not received', priority: 'Medium', status: 'Resolved' },
+                ],
+
+                ledger: [
+                    { date: 'Oct 09', desc: 'Driver cash collected (Zone A)', category: 'Collections', amount: 792.50 },
+                    { date: 'Oct 09', desc: 'Fuel for the delivery fleet', category: 'OpEx', amount: -64.00 },
+                    { date: 'Oct 08', desc: 'Petty cash top-up', category: 'Petty cash', amount: -200.00 },
+                    { date: 'Oct 08', desc: 'Driver cash collected (Zone B)', category: 'Collections', amount: 805.25 },
+                    { date: 'Oct 07', desc: 'Bike maintenance', category: 'OpEx', amount: -120.00 },
+                ],
+
+                // Status text -> visual tone. Reds mark attention only, in the two brand shades.
+                tones: {
+                    'On shift': 'solid', 'Late': 'alert', 'Off': 'muted',
+                    'Confirmed': 'solid', 'Pending': 'muted', 'Short': 'alert',
+                    'High': 'alert', 'Medium': 'solid', 'Low': 'muted',
+                },
+
+                init() {
+                    this.syncFromHash();
+                },
+
+                get items() {
+                    return this.nav.flatMap((section) => section.items);
+                },
+                get current() {
+                    return this.items.find((item) => item.id === this.page);
+                },
+                get cashTotals() {
+                    return this.cash.reduce(
+                        (sum, r) => ({ expected: sum.expected + r.expected, handed: sum.handed + r.handed }),
+                        { expected: 0, handed: 0 }
+                    );
+                },
+                get ledgerIn() {
+                    return this.ledger.filter((l) => l.amount > 0).reduce((sum, l) => sum + l.amount, 0);
+                },
+                get ledgerOut() {
+                    return this.ledger.filter((l) => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
+                },
+
+                syncFromHash() {
+                    const id = location.hash.slice(1);
+                    this.page = this.items.some((item) => item.id === id) ? id : 'dashboard';
+                    this.sidebarOpen = false;
+                    window.scrollTo({ top: 0 });
+                },
+                go(id) {
+                    this.sidebarOpen = false;
+                    if (location.hash === '#' + id) {
+                        return;
+                    }
+                    location.hash = id;
+                },
+
+                openSidebar() {
+                    this.sidebarOpen = true;
+                    this.$nextTick(() => this.$refs.closeBtn.focus());
+                },
+                closeSidebar() {
+                    if (!this.sidebarOpen) {
+                        return;
+                    }
+                    this.sidebarOpen = false;
+                    this.$nextTick(() => this.$refs.menuBtn.focus());
+                },
+
+                notify(message) {
+                    this.toast = message;
+                    clearTimeout(this.toastTimer);
+                    this.toastTimer = setTimeout(() => { this.toast = ''; }, 2600);
+                },
+                confirmCash(row) {
+                    row.status = 'Confirmed';
+                    this.notify('Hand-in confirmed for ' + row.driver + ' (demo)');
+                },
+                money(amount) {
+                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+                },
+
+                chip(status) {
+                    const tone = {
+                        solid: 'border-slate-900 bg-slate-900 text-white',
+                        alert: 'border-brand-red-1 bg-brand-red-2/10 text-slate-900',
+                        muted: 'border-slate-200 bg-slate-100 text-slate-700',
+                    }[this.tones[status]];
+                    return 'inline-flex items-center gap-x-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ' + tone;
+                },
+                dot(status) {
+                    return { solid: 'bg-white', alert: 'bg-brand-red-1', muted: 'bg-slate-400' }[this.tones[status]];
+                },
+            };
+        }
+    </script>
+</body>
+</html>
