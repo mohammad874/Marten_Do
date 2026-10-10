@@ -194,19 +194,22 @@
                 <!-- Dashboard (Home) -->
                 <section x-cloak x-show="page === 'dashboard'" aria-label="Dashboard">
                     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                        <template x-for="k in kpis" :key="k.label">
+                        <template x-for="id in kpiIds" :key="id">
                             <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-5 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
                                 <div class="flex items-center justify-between">
-                                    <p class="text-sm font-medium text-slate-600" x-text="k.label"></p>
+                                    <p class="text-sm font-medium text-slate-600" x-text="kpi(id).label"></p>
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
                                         class="h-5 w-5 text-brand-red-1" aria-hidden="true"
-                                        x-html="icons[k.icon]"
+                                        x-html="icons[kpi(id).icon]"
                                     ></svg>
                                 </div>
-                                <p class="mt-3 text-3xl font-bold tracking-tight" x-text="k.value"></p>
-                                <p class="mt-1 text-sm text-slate-600" x-text="k.delta"></p>
+                                <p class="mt-3 flex items-baseline gap-x-1.5 whitespace-nowrap">
+                                    <span class="text-3xl font-bold tracking-tight" x-text="kpi(id).value"></span>
+                                    <span class="text-sm font-semibold text-slate-600" x-text="kpi(id).unit"></span>
+                                </p>
+                                <p class="mt-1 text-sm text-slate-600" x-text="kpi(id).delta"></p>
                             </div>
                         </template>
                     </div>
@@ -218,7 +221,7 @@
                                 <li class="flex items-start gap-x-3 px-5 py-3 transition-colors hover:bg-brand-red-2/5">
                                     <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-red-2" aria-hidden="true"></span>
                                     <div class="min-w-0 flex-1">
-                                        <p class="text-sm" x-text="a.text"></p>
+                                        <p class="text-sm" x-text="a.text + (a.amount ? ' ' + money(a.amount) : '')"></p>
                                         <p class="text-xs text-slate-600" x-text="a.by"></p>
                                     </div>
                                     <time class="text-xs text-slate-600" x-text="a.time"></time>
@@ -234,7 +237,10 @@
                         <template x-for="m in metrics" :key="m.label">
                             <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-6 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
                                 <p class="text-sm font-medium text-slate-600" x-text="m.label"></p>
-                                <p class="mt-2 text-4xl font-bold tracking-tight text-brand-red-1" x-text="m.value"></p>
+                                <p class="mt-2 flex items-baseline gap-x-2 whitespace-nowrap">
+                                    <span class="text-4xl font-bold tracking-tight text-brand-red-1" x-text="m.value"></span>
+                                    <span class="text-base font-semibold text-slate-600" x-text="m.unit"></span>
+                                </p>
                                 <p class="mt-2 text-sm text-slate-600" x-text="m.note"></p>
                             </div>
                         </template>
@@ -243,18 +249,21 @@
                     <div class="mt-6 grid gap-4 lg:grid-cols-3">
                         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
                             <h2 class="text-sm font-semibold">New customers per month</h2>
-                            <p class="text-xs text-slate-600">Dummy data, in hundreds</p>
+                            <p class="text-xs text-slate-600">Dummy data</p>
                             <div
-                                class="mt-5 flex h-40 items-end gap-3"
+                                class="mt-5 flex h-44 items-end gap-3"
                                 role="img"
-                                aria-label="Bar chart: new customers per month, rising from 46 in May to 84 in October"
+                                x-bind:aria-label="'Bar chart: new customers per month, from ' + bars[0].v + ' in ' + bars[0].m + ' to ' + bars[bars.length - 1].v + ' in ' + bars[bars.length - 1].m"
                             >
                                 <template x-for="b in bars" :key="b.m">
-                                    <div
-                                        class="flex-1 rounded-t bg-brand-red-1 transition-colors hover:bg-brand-red-2"
-                                        x-bind:style="'height:' + b.v + '%'"
-                                        x-bind:title="b.m + ': ' + b.v"
-                                    ></div>
+                                    <div class="flex h-full flex-1 flex-col justify-end">
+                                        <span class="mb-1 text-center text-xs tabular-nums text-slate-600" x-text="b.v"></span>
+                                        <div
+                                            class="w-full rounded-t bg-brand-red-1 transition-colors hover:bg-brand-red-2"
+                                            x-bind:style="'height:' + (b.v / barMax * 80) + '%'"
+                                            x-bind:title="b.m + ': ' + b.v + ' new customers'"
+                                        ></div>
+                                    </div>
                                 </template>
                             </div>
                             <div class="mt-2 flex gap-3" aria-hidden="true">
@@ -266,18 +275,18 @@
 
                         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                             <h2 class="text-sm font-semibold">Runway</h2>
-                            <p class="text-xs text-slate-600">14.5 of a 24 month target</p>
+                            <p class="text-xs text-slate-600" x-text="runway + ' of a ' + finance.runwayTarget + ' month target'"></p>
                             <div
                                 class="mt-5 h-3 overflow-hidden rounded-full bg-slate-200"
                                 role="progressbar" aria-label="Runway progress"
-                                aria-valuemin="0" aria-valuemax="100" aria-valuenow="60"
+                                aria-valuemin="0" aria-valuemax="100" x-bind:aria-valuenow="runwayPct"
                             >
-                                <div class="h-full w-[60%] rounded-full bg-brand-red-1"></div>
+                                <div class="h-full rounded-full bg-brand-red-1" x-bind:style="'width:' + runwayPct + '%'"></div>
                             </div>
                             <dl class="mt-5 space-y-2 text-sm">
-                                <div class="flex justify-between"><dt class="text-slate-600">Monthly burn</dt><dd class="font-medium">$38,400</dd></div>
-                                <div class="flex justify-between"><dt class="text-slate-600">Cash at bank</dt><dd class="font-medium">$556,800</dd></div>
-                                <div class="flex justify-between"><dt class="text-slate-600">LTV : CAC</dt><dd class="font-medium">14.7 : 1</dd></div>
+                                <div class="flex justify-between gap-3"><dt class="text-slate-600">Monthly burn</dt><dd class="font-medium" x-text="money(finance.burn)"></dd></div>
+                                <div class="flex justify-between gap-3"><dt class="text-slate-600">Cash at bank</dt><dd class="font-medium" x-text="money(finance.bank)"></dd></div>
+                                <div class="flex justify-between gap-3"><dt class="text-slate-600">LTV : CAC</dt><dd class="font-medium" x-text="ltvCac + ' : 1'"></dd></div>
                             </dl>
                         </div>
                     </div>
@@ -312,7 +321,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p class="mt-3 text-xs text-slate-600">Showing 6 of 42 drivers. Dummy data.</p>
+                    <p class="mt-3 text-xs text-slate-600" x-text="drivers.length + ' drivers across 3 zones. Dummy data.'"></p>
                 </section>
 
                 <!-- Driver Cash Hand-in -->
@@ -356,9 +365,9 @@
                             <tfoot class="border-t-2 border-slate-200 bg-slate-50 text-sm font-semibold">
                                 <tr>
                                     <th scope="row" class="px-4 py-3 text-left">Totals</th>
-                                    <td class="px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.expected)"></td>
-                                    <td class="px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.handed)"></td>
-                                    <td class="px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.handed - cashTotals.expected)"></td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.expected)"></td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.handed)"></td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums" x-text="money(cashTotals.handed - cashTotals.expected)"></td>
                                     <td class="px-4 py-3" colspan="2"></td>
                                 </tr>
                             </tfoot>
@@ -419,19 +428,28 @@
                     <div class="grid gap-4 sm:grid-cols-3">
                         <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-5 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
                             <p class="text-sm font-medium text-slate-600">Cash in</p>
-                            <p class="mt-2 text-3xl font-bold tracking-tight" x-text="money(ledgerIn)"></p>
+                            <p class="mt-2 flex items-baseline gap-x-1.5 whitespace-nowrap">
+                                <span class="text-3xl font-bold tracking-tight" x-text="num(ledgerIn)"></span>
+                                <span class="text-sm font-semibold text-slate-600" x-text="currency"></span>
+                            </p>
                         </div>
                         <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-5 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
                             <p class="text-sm font-medium text-slate-600">Cash out</p>
-                            <p class="mt-2 text-3xl font-bold tracking-tight" x-text="money(ledgerOut)"></p>
+                            <p class="mt-2 flex items-baseline gap-x-1.5 whitespace-nowrap">
+                                <span class="text-3xl font-bold tracking-tight" x-text="num(ledgerOut)"></span>
+                                <span class="text-sm font-semibold text-slate-600" x-text="currency"></span>
+                            </p>
                         </div>
                         <div class="rounded-xl border border-slate-200 border-t-4 border-t-brand-red-1 bg-white p-5 shadow-sm transition hover:border-t-brand-red-2 hover:shadow-md">
                             <p class="text-sm font-medium text-slate-600">Net</p>
-                            <p class="mt-2 text-3xl font-bold tracking-tight" x-text="money(ledgerIn + ledgerOut)"></p>
+                            <p class="mt-2 flex items-baseline gap-x-1.5 whitespace-nowrap">
+                                <span class="text-3xl font-bold tracking-tight" x-text="num(ledgerIn + ledgerOut)"></span>
+                                <span class="text-sm font-semibold text-slate-600" x-text="currency"></span>
+                            </p>
                         </div>
                     </div>
 
-                    <div class="mt-6 relative overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div class="relative mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                         <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
                             <thead class="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-600">
                                 <tr>
@@ -454,6 +472,270 @@
                                 </template>
                             </tbody>
                         </table>
+                    </div>
+                </section>
+
+                <!-- Marten Meet -->
+                <section x-cloak x-show="page === 'meet'" aria-label="Marten Meet">
+                    <div class="overflow-hidden rounded-2xl border border-slate-800 border-t-4 border-t-brand-red-1 bg-slate-900 text-white shadow-sm">
+                        <!-- Meeting bar -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
+                            <div class="min-w-0">
+                                <h2 class="truncate text-base font-semibold" x-text="meet.title"></h2>
+                                <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-300">
+                                    <span class="inline-flex items-center gap-x-1.5">
+                                        <span class="h-2 w-2 rounded-full" x-bind:class="meet.joined ? 'animate-pulse bg-brand-red-1' : 'bg-slate-500'" aria-hidden="true"></span>
+                                        <span x-text="meet.joined ? 'Live' : 'Ended'"></span>
+                                    </span>
+                                    <span aria-hidden="true">·</span>
+                                    <time class="tabular-nums" x-text="elapsedLabel"></time>
+                                    <span aria-hidden="true">·</span>
+                                    <span>Meeting ID <span class="tabular-nums" x-text="meet.code"></span></span>
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                x-on:click="notify('Meeting link copied (demo)')"
+                                class="inline-flex items-center gap-x-2 rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:border-brand-red-2 hover:bg-brand-red-2/10 hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true" x-html="icons.copy"></svg>
+                                Copy link
+                            </button>
+                        </div>
+
+                        <div class="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row">
+                            <!-- Stage -->
+                            <div class="min-w-0 flex-1">
+                                <!-- Screen share banner -->
+                                <div
+                                    x-show="meet.joined && meet.sharing"
+                                    class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-red-1 bg-brand-red-1/10 px-4 py-3"
+                                >
+                                    <p class="flex items-center gap-x-2 text-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 shrink-0 text-brand-red-1" aria-hidden="true" x-html="icons.monitor"></svg>
+                                        You are sharing your screen
+                                    </p>
+                                    <button
+                                        type="button"
+                                        x-on:click="meet.sharing = false"
+                                        class="rounded-lg border border-brand-red-1 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:border-brand-red-2 hover:bg-brand-red-2/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
+                                    >Stop sharing</button>
+                                </div>
+
+                                <!-- In the call -->
+                                <div x-show="meet.joined">
+                                    <div class="grid grid-cols-2 gap-3 md:grid-cols-6">
+                                        <template x-for="(p, i) in meet.people" :key="p.id">
+                                            <div
+                                                class="relative aspect-video overflow-hidden rounded-xl bg-slate-800 ring-2 transition-shadow"
+                                                x-bind:class="[i < 3 ? 'md:col-span-2' : 'md:col-span-3', i === 4 ? 'col-span-2' : '', speaking(p) ? 'ring-brand-red-1' : 'ring-white/10'].join(' ')"
+                                                x-bind:data-speaking="speaking(p) ? 'true' : 'false'"
+                                            >
+                                                <!-- Camera on: stylised feed -->
+                                                <div x-show="camOn(p)" class="absolute inset-0 flex items-end justify-center bg-gradient-to-br from-slate-700 to-slate-800">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="h-3/4 w-3/4 text-slate-500" aria-hidden="true" x-html="icons.user"></svg>
+                                                </div>
+                                                <!-- Camera off: initials -->
+                                                <div x-show="!camOn(p)" class="absolute inset-0 flex items-center justify-center bg-slate-900 pb-7">
+                                                    <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-700 text-sm font-semibold text-white md:h-12 md:w-12 md:text-base" x-text="p.initials"></span>
+                                                </div>
+
+                                                <!-- Raised hand (you) -->
+                                                <span
+                                                    x-show="p.id === 'you' && meet.hand"
+                                                    class="absolute left-3 top-3 rounded-full border border-brand-red-1 bg-slate-900/80 p-1.5 text-brand-red-1"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true" x-html="icons.hand"></svg>
+                                                    <span class="sr-only">Hand raised</span>
+                                                </span>
+
+                                                <!-- Speaking indicator: Red 2 accent -->
+                                                <span x-show="speaking(p)" class="absolute right-3 top-3 flex h-4 items-end gap-0.5" aria-hidden="true">
+                                                    <span class="h-2 w-1 animate-pulse rounded-full bg-brand-red-2"></span>
+                                                    <span class="h-4 w-1 animate-pulse rounded-full bg-brand-red-2"></span>
+                                                    <span class="h-3 w-1 animate-pulse rounded-full bg-brand-red-2"></span>
+                                                </span>
+
+                                                <!-- Name label -->
+                                                <div class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-slate-900/90 to-transparent px-3 pb-2 pt-8">
+                                                    <div class="min-w-0 leading-tight">
+                                                        <p class="truncate text-sm font-medium text-white" x-text="p.name + (p.id === 'you' ? ' (you)' : '')"></p>
+                                                        <p class="truncate text-xs text-slate-300" x-text="p.role"></p>
+                                                    </div>
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                        stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+                                                        class="h-4 w-4 shrink-0"
+                                                        x-bind:class="micOn(p) ? 'text-white' : 'text-brand-red-1'"
+                                                        aria-hidden="true"
+                                                        x-html="micOn(p) ? icons.mic : icons.micOff"
+                                                    ></svg>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <!-- Controls -->
+                                    <div class="mt-5 flex flex-wrap items-start justify-center gap-x-2 gap-y-3">
+                                        <template x-for="c in controlIds" :key="c">
+                                            <div class="flex w-[4.25rem] flex-col items-center gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    x-on:click="runControl(c)"
+                                                    x-bind:data-control="c"
+                                                    x-bind:data-flagged="controlFlag(c) ? 'true' : 'false'"
+                                                    class="flex h-12 w-12 items-center justify-center rounded-full border transition-colors hover:border-brand-red-2 hover:bg-brand-red-2/10 hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
+                                                    x-bind:class="controlFlag(c) ? 'border-brand-red-1 bg-brand-red-1/15 text-brand-red-1' : 'border-slate-600 bg-slate-800 text-white'"
+                                                >
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                        stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"
+                                                        class="h-5 w-5" aria-hidden="true"
+                                                        x-html="icons[controlIcon(c)]"
+                                                    ></svg>
+                                                    <span class="sr-only" x-text="controlLabel(c)"></span>
+                                                </button>
+                                                <span class="text-center text-xs text-slate-300" aria-hidden="true" x-text="controlLabel(c)"></span>
+                                            </div>
+                                        </template>
+
+                                        <div class="flex w-[4.25rem] flex-col items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                x-on:click="leave()"
+                                                class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-red-1 text-white transition-colors hover:bg-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true" x-html="icons.logout"></svg>
+                                                <span class="sr-only">Leave meeting</span>
+                                            </button>
+                                            <span class="text-center text-xs text-slate-300" aria-hidden="true">Leave</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Left the meeting -->
+                                <div
+                                    x-show="!meet.joined"
+                                    class="flex min-h-[22rem] flex-col items-center justify-center gap-4 rounded-xl border border-white/10 bg-slate-800/60 p-8 text-center"
+                                >
+                                    <span class="flex h-14 w-14 items-center justify-center rounded-full border border-brand-red-1 text-brand-red-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-7 w-7" aria-hidden="true" x-html="icons.videoOff"></svg>
+                                    </span>
+                                    <div>
+                                        <p class="text-lg font-semibold">You left the meeting</p>
+                                        <p class="mt-1 text-sm text-slate-300">Duration so far <span class="tabular-nums" x-text="elapsedLabel"></span></p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        x-on:click="rejoin()"
+                                        class="rounded-lg border border-brand-red-1 bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:border-brand-red-2 hover:bg-brand-red-2/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
+                                    >Rejoin meeting</button>
+                                </div>
+                            </div>
+
+                            <!-- Side panel: chat / people -->
+                            <aside
+                                x-show="meet.joined && meet.panel"
+                                class="w-full shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-800/60 lg:w-80"
+                                aria-label="Meeting panel"
+                            >
+                                <div class="flex border-b border-white/10" role="tablist">
+                                    <button
+                                        type="button" role="tab" data-tab="chat"
+                                        x-bind:aria-selected="(meet.panel === 'chat').toString()"
+                                        x-on:click="meet.panel = 'chat'"
+                                        class="flex-1 border-b-2 px-4 py-3 text-sm font-semibold transition-colors hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-red-2"
+                                        x-bind:class="meet.panel === 'chat' ? 'border-brand-red-1 text-white' : 'border-transparent text-slate-300'"
+                                    >Chat</button>
+                                    <button
+                                        type="button" role="tab" data-tab="people"
+                                        x-bind:aria-selected="(meet.panel === 'people').toString()"
+                                        x-on:click="meet.panel = 'people'"
+                                        class="flex-1 border-b-2 px-4 py-3 text-sm font-semibold transition-colors hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-red-2"
+                                        x-bind:class="meet.panel === 'people' ? 'border-brand-red-1 text-white' : 'border-transparent text-slate-300'"
+                                        x-text="'People (' + meet.people.length + ')'"
+                                    ></button>
+                                </div>
+
+                                <!-- Chat -->
+                                <div x-show="meet.panel === 'chat'">
+                                    <ul x-ref="chatLog" role="log" aria-label="Chat messages" class="h-72 space-y-3 overflow-y-auto p-3">
+                                        <template x-for="m in meet.messages" :key="m.time + m.who + m.text">
+                                            <li
+                                                class="rounded-lg bg-slate-800 px-3 py-2"
+                                                x-bind:class="m.who === 'You' ? 'border-l-2 border-brand-red-1' : ''"
+                                            >
+                                                <div class="flex items-baseline justify-between gap-2">
+                                                    <span class="text-xs font-semibold text-slate-200" x-text="m.who"></span>
+                                                    <time class="text-xs text-slate-400" x-text="m.time"></time>
+                                                </div>
+                                                <p class="mt-0.5 text-sm text-slate-100" x-text="m.text"></p>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                    <form x-on:submit.prevent="sendMessage()" class="flex gap-2 border-t border-white/10 p-3">
+                                        <label class="sr-only" for="meet-message">Message</label>
+                                        <input
+                                            id="meet-message"
+                                            type="text"
+                                            x-model="meet.draft"
+                                            autocomplete="off"
+                                            placeholder="Message everyone"
+                                            class="min-w-0 flex-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white placeholder:text-slate-400 focus:border-brand-red-2 focus:outline-none focus:ring-2 focus:ring-brand-red-2"
+                                        >
+                                        <button
+                                            type="submit"
+                                            class="rounded-lg border border-brand-red-1 bg-slate-800 p-2.5 text-brand-red-1 transition-colors hover:border-brand-red-2 hover:bg-brand-red-2/10 hover:text-brand-red-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-red-2"
+                                        >
+                                            <span class="sr-only">Send message</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true" x-html="icons.send"></svg>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- People -->
+                                <ul x-show="meet.panel === 'people'" role="list" class="divide-y divide-white/10">
+                                    <template x-for="p in meet.people" :key="p.id">
+                                        <li class="flex items-center gap-x-3 px-3 py-2.5">
+                                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-white" aria-hidden="true" x-text="p.initials"></span>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="truncate text-sm font-medium" x-text="p.name + (p.id === 'you' ? ' (you)' : '')"></p>
+                                                <p class="truncate text-xs text-slate-300" x-text="p.role"></p>
+                                            </div>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0"
+                                                x-bind:class="micOn(p) ? 'text-slate-300' : 'text-brand-red-1'"
+                                                aria-hidden="true" x-html="micOn(p) ? icons.mic : icons.micOff"
+                                            ></svg>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0"
+                                                x-bind:class="camOn(p) ? 'text-slate-300' : 'text-brand-red-1'"
+                                                aria-hidden="true" x-html="camOn(p) ? icons.video : icons.videoOff"
+                                            ></svg>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </aside>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming meetings -->
+                    <div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <h2 class="border-b border-slate-200 px-5 py-4 text-sm font-semibold">Upcoming meetings</h2>
+                        <ul role="list" class="divide-y divide-slate-100">
+                            <template x-for="u in upcoming" :key="u.when + u.title">
+                                <li class="flex items-start gap-x-3 px-5 py-3 transition-colors hover:bg-brand-red-2/5">
+                                    <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-red-2" aria-hidden="true"></span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-medium" x-text="u.title"></p>
+                                        <p class="text-xs text-slate-600" x-text="u.who"></p>
+                                    </div>
+                                    <time class="whitespace-nowrap text-xs text-slate-600" x-text="u.when"></time>
+                                </li>
+                            </template>
+                        </ul>
                     </div>
                 </section>
 
@@ -480,6 +762,12 @@
                 toast: '',
                 toastTimer: null,
 
+                // Every amount is shown in Syrian pounds (SYP, ل.س). This multiplies the displayed
+                // figures: leave it at 1, or set it to 100 to see the same data on the older,
+                // larger-number scale.
+                amountScale: 1,
+                currency: 'ل.س',
+
                 icons: {
                     home: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
                     trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
@@ -487,8 +775,20 @@
                     inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
                     lifebuoy: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/>',
                     book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
-                    dollar: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+                    cash: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><line x1="6" y1="12" x2="6.01" y2="12"/><line x1="18" y1="12" x2="18.01" y2="12"/>',
                     package: '<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+                    video: '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>',
+                    videoOff: '<path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"/>',
+                    mic: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
+                    micOff: '<line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
+                    monitor: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+                    hand: '<path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
+                    chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+                    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+                    user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+                    send: '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+                    copy: '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+                    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
                 },
 
                 nav: [
@@ -496,72 +796,75 @@
                         { id: 'dashboard', label: 'Dashboard', sub: 'Home: today at a glance', roles: 'All roles', icon: 'home' },
                     ] },
                     { id: 'executive', title: 'Executive', items: [
-                        { id: 'strategic', label: 'Strategic Intelligence', sub: 'Metrics: CAC, LTV and runway', roles: 'CTMO · COO', icon: 'trend' },
+                        { id: 'strategic', label: 'Strategic Intelligence', sub: 'Metrics: CAC, LTV and runway, in SYP (ل.س)', roles: 'CTMO · COO', icon: 'trend' },
                     ] },
                     { id: 'operations', title: 'Operations', items: [
                         { id: 'fleet', label: 'Fleet & Shifts', sub: 'Driver shifts and fleet status', roles: 'Boss Delivery', icon: 'truck' },
-                        { id: 'cash', label: 'Driver Cash Hand-in', sub: 'Daily driver cash collection', roles: 'Boss Delivery', icon: 'inbox' },
+                        { id: 'cash', label: 'Driver Cash Hand-in', sub: 'Daily driver cash collection, in SYP (ل.س)', roles: 'Boss Delivery', icon: 'inbox' },
                         { id: 'support', label: 'Customer Support Desk', sub: 'Tickets and emergency compensation', roles: 'Call Center Supervisor', icon: 'lifebuoy' },
                     ] },
                     { id: 'finance', title: 'Finance', items: [
-                        { id: 'ledger', label: 'Operational Ledger', sub: 'Cash flow, petty cash and OpEx', roles: 'Accountant', icon: 'book' },
+                        { id: 'ledger', label: 'Operational Ledger', sub: 'Cash flow, petty cash and OpEx, in SYP (ل.س)', roles: 'Accountant', icon: 'book' },
+                    ] },
+                    { id: 'collaboration', title: 'Collaboration', items: [
+                        { id: 'meet', label: 'Marten Meet', sub: 'Team video meetings', roles: 'All roles', icon: 'video' },
                     ] },
                 ],
 
-                kpis: [
-                    { label: 'Orders today', value: '1,284', delta: '+6.2% vs yesterday', icon: 'package' },
-                    { label: 'Drivers on shift', value: '38 / 42', delta: '2 running late', icon: 'truck' },
-                    { label: 'Cash to reconcile', value: '$4,820', delta: '7 hand-ins pending', icon: 'dollar' },
-                    { label: 'Open tickets', value: '12', delta: '3 high priority', icon: 'lifebuoy' },
-                ],
+                // ---- Dashboard ------------------------------------------------------------
+                kpiIds: ['orders', 'drivers', 'cash', 'tickets'],
                 activity: [
-                    { time: '09:42', text: 'Khaled M. handed in $412.50', by: 'Boss Delivery' },
-                    { time: '09:15', text: 'Ticket #1042 escalated to high priority', by: 'Call Center Supervisor' },
+                    { time: '09:42', text: 'Khaled M. handed in', amount: 6240, by: 'Boss Delivery' },
+                    { time: '09:15', text: 'Ticket #214 escalated to high priority', by: 'Call Center Supervisor' },
                     { time: '08:50', text: 'Zone B shift roster published', by: 'Boss Delivery' },
-                    { time: '08:05', text: 'Petty cash expense logged: fuel $64.00', by: 'Accountant' },
+                    { time: '08:05', text: 'Petty cash expense logged: fuel', amount: 2400, by: 'Accountant' },
                 ],
 
-                metrics: [
-                    { label: 'CAC', value: '$4.20', note: 'Customer acquisition cost, down 8% vs last month' },
-                    { label: 'LTV', value: '$61.80', note: 'Lifetime value per customer, up 5%' },
-                    { label: 'Runway', value: '14.5 mo', note: 'At the current monthly burn' },
-                ],
+                // ---- Strategic Intelligence (all amounts in SYP) -----------------------------
+                finance: { cac: 420, ltv: 1890, burn: 96000, bank: 624000, runwayTarget: 12 },
                 bars: [
-                    { m: 'May', v: 46 }, { m: 'Jun', v: 54 }, { m: 'Jul', v: 61 },
-                    { m: 'Aug', v: 58 }, { m: 'Sep', v: 72 }, { m: 'Oct', v: 84 },
+                    { m: 'May', v: 182 }, { m: 'Jun', v: 205 }, { m: 'Jul', v: 236 },
+                    { m: 'Aug', v: 221 }, { m: 'Sep', v: 268 }, { m: 'Oct', v: 301 },
                 ],
 
+                // ---- Fleet, cash, support, ledger --------------------------------------------
                 drivers: [
                     { name: 'Khaled M.', zone: 'Zone A', shift: '07:00 – 15:00', status: 'On shift' },
                     { name: 'Omar S.', zone: 'Zone A', shift: '07:00 – 15:00', status: 'On shift' },
+                    { name: 'Fadi Z.', zone: 'Zone A', shift: '07:00 – 15:00', status: 'On shift' },
+                    { name: 'Hadi Q.', zone: 'Zone A', shift: '07:00 – 15:00', status: 'On shift' },
                     { name: 'Yousef H.', zone: 'Zone B', shift: '09:00 – 17:00', status: 'Late' },
                     { name: 'Sami R.', zone: 'Zone B', shift: '09:00 – 17:00', status: 'On shift' },
+                    { name: 'Rami F.', zone: 'Zone B', shift: '09:00 – 17:00', status: 'On shift' },
+                    { name: 'Nour A.', zone: 'Zone B', shift: '09:00 – 17:00', status: 'On shift' },
+                    { name: 'Ziad B.', zone: 'Zone C', shift: '15:00 – 23:00', status: 'On shift' },
                     { name: 'Tarek N.', zone: 'Zone C', shift: '15:00 – 23:00', status: 'Off' },
                     { name: 'Bassel A.', zone: 'Zone C', shift: '15:00 – 23:00', status: 'Off' },
+                    { name: 'Mahmoud D.', zone: 'Zone C', shift: '15:00 – 23:00', status: 'Off' },
                 ],
 
                 cash: [
-                    { driver: 'Khaled M.', expected: 412.50, handed: 412.50, status: 'Confirmed' },
-                    { driver: 'Omar S.', expected: 380.00, handed: 380.00, status: 'Pending' },
-                    { driver: 'Yousef H.', expected: 295.75, handed: 270.00, status: 'Short' },
-                    { driver: 'Sami R.', expected: 510.25, handed: 510.25, status: 'Pending' },
-                    { driver: 'Rami F.', expected: 188.00, handed: 188.00, status: 'Pending' },
+                    { driver: 'Khaled M.', expected: 6240, handed: 6240, status: 'Confirmed' },
+                    { driver: 'Omar S.', expected: 5480, handed: 5480, status: 'Pending' },
+                    { driver: 'Yousef H.', expected: 4175, handed: 3900, status: 'Short' },
+                    { driver: 'Sami R.', expected: 7310, handed: 7310, status: 'Pending' },
+                    { driver: 'Rami F.', expected: 3860, handed: 3860, status: 'Pending' },
                 ],
 
                 tickets: [
-                    { id: '#1042', customer: 'Layla D.', issue: 'Order delivered cold', priority: 'High', status: 'Open' },
-                    { id: '#1041', customer: 'Nadim K.', issue: 'Wrong item in the order', priority: 'Medium', status: 'Open' },
-                    { id: '#1039', customer: 'Hana T.', issue: 'Driver could not find the address', priority: 'Low', status: 'In progress' },
-                    { id: '#1036', customer: 'Walid S.', issue: 'Late delivery (45 minutes)', priority: 'High', status: 'Open' },
-                    { id: '#1033', customer: 'Dina M.', issue: 'Refund not received', priority: 'Medium', status: 'Resolved' },
+                    { id: '#214', customer: 'Layla D.', issue: 'Order delivered cold', priority: 'High', status: 'Open' },
+                    { id: '#213', customer: 'Nadim K.', issue: 'Wrong item in the order', priority: 'Medium', status: 'Open' },
+                    { id: '#211', customer: 'Hana T.', issue: 'Driver could not find the address', priority: 'Low', status: 'In progress' },
+                    { id: '#208', customer: 'Walid S.', issue: 'Late delivery (45 minutes)', priority: 'High', status: 'Open' },
+                    { id: '#205', customer: 'Dina M.', issue: 'Refund not received', priority: 'Medium', status: 'Resolved' },
                 ],
 
                 ledger: [
-                    { date: 'Oct 09', desc: 'Driver cash collected (Zone A)', category: 'Collections', amount: 792.50 },
-                    { date: 'Oct 09', desc: 'Fuel for the delivery fleet', category: 'OpEx', amount: -64.00 },
-                    { date: 'Oct 08', desc: 'Petty cash top-up', category: 'Petty cash', amount: -200.00 },
-                    { date: 'Oct 08', desc: 'Driver cash collected (Zone B)', category: 'Collections', amount: 805.25 },
-                    { date: 'Oct 07', desc: 'Bike maintenance', category: 'OpEx', amount: -120.00 },
+                    { date: 'Oct 09', desc: 'Driver cash collected (Zone A)', category: 'Collections', amount: 24860 },
+                    { date: 'Oct 09', desc: 'Fuel for the delivery fleet', category: 'OpEx', amount: -2400 },
+                    { date: 'Oct 08', desc: 'Petty cash top-up', category: 'Petty cash', amount: -5000 },
+                    { date: 'Oct 08', desc: 'Driver cash collected (Zone B)', category: 'Collections', amount: 21430 },
+                    { date: 'Oct 07', desc: 'Bike maintenance', category: 'OpEx', amount: -3750 },
                 ],
 
                 // Status text -> visual tone. Reds mark attention only, in the two brand shades.
@@ -571,10 +874,53 @@
                     'High': 'alert', 'Medium': 'solid', 'Low': 'muted',
                 },
 
+                // ---- Marten Meet ---------------------------------------------------------------
+                meet: {
+                    title: 'Daily Ops Sync',
+                    code: '482-193-075',
+                    joined: true,
+                    elapsed: 768,
+                    mic: true,
+                    cam: true,
+                    sharing: false,
+                    hand: false,
+                    panel: 'chat',
+                    speaker: 'coo',
+                    draft: '',
+                    people: [
+                        { id: 'you', name: 'You', role: 'CTMO', initials: 'CT', mic: true, cam: true },
+                        { id: 'coo', name: 'COO', role: 'Co-Founder', initials: 'CO', mic: true, cam: true },
+                        { id: 'cc', name: 'Call Center', role: 'Supervisor', initials: 'CC', mic: false, cam: true },
+                        { id: 'bd', name: 'Boss Delivery', role: 'Fleet', initials: 'BD', mic: true, cam: false },
+                        { id: 'ac', name: 'Accountant', role: 'Finance', initials: 'AC', mic: false, cam: false },
+                    ],
+                    messages: [
+                        { who: 'COO', time: '10:02', text: 'Morning all. Agenda: shifts, cash close, open tickets.' },
+                        { who: 'Boss Delivery', time: '10:03', text: 'Zone B has one late driver, covering it now.' },
+                        { who: 'Accountant', time: '10:04', text: 'I will confirm the cash hand-ins right after this call.' },
+                    ],
+                },
+                controlIds: ['mic', 'cam', 'share', 'hand', 'chat', 'people'],
+                upcoming: [
+                    { when: '12:00', title: 'Fleet shift handover', who: 'Boss Delivery · COO' },
+                    { when: '14:30', title: 'Daily cash close', who: 'Accountant · Boss Delivery' },
+                    { when: '16:00', title: 'Support escalations review', who: 'Call Center Supervisor · COO' },
+                    { when: 'Tomorrow 10:00', title: 'Weekly strategy review', who: 'CTMO · COO' },
+                ],
+
                 init() {
                     this.syncFromHash();
+
+                    // Meeting clock, and a rotating "active speaker" among unmuted people.
+                    setInterval(() => { if (this.meet.joined) this.meet.elapsed++; }, 1000);
+                    setInterval(() => {
+                        if (!this.meet.joined) return;
+                        const talkers = this.meet.people.filter((p) => this.micOn(p) && p.id !== this.meet.speaker);
+                        if (talkers.length) this.meet.speaker = talkers[Math.floor(Math.random() * talkers.length)].id;
+                    }, 3500);
                 },
 
+                // ---- Derived data -------------------------------------------------------------
                 get items() {
                     return this.nav.flatMap((section) => section.items);
                 },
@@ -593,7 +939,52 @@
                 get ledgerOut() {
                     return this.ledger.filter((l) => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
                 },
+                get metrics() {
+                    return [
+                        { label: 'CAC', value: this.num(this.finance.cac), unit: this.currency, note: 'Customer acquisition cost, down 8% vs last month' },
+                        { label: 'LTV', value: this.num(this.finance.ltv), unit: this.currency, note: 'Lifetime value per customer, up 5%' },
+                        { label: 'Runway', value: String(this.runway), unit: 'mo', note: 'Cash at bank divided by the monthly burn' },
+                    ];
+                },
+                get runway() {
+                    return +(this.finance.bank / this.finance.burn).toFixed(1);
+                },
+                get runwayPct() {
+                    return Math.min(100, Math.round((this.runway / this.finance.runwayTarget) * 100));
+                },
+                get ltvCac() {
+                    return (this.finance.ltv / this.finance.cac).toFixed(1);
+                },
+                get barMax() {
+                    return Math.max(...this.bars.map((b) => b.v));
+                },
+                get elapsedLabel() {
+                    const s = this.meet.elapsed;
+                    return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60]
+                        .map((n) => String(n).padStart(2, '0'))
+                        .join(':');
+                },
 
+                kpi(id) {
+                    if (id === 'orders') {
+                        return { label: 'Orders today', value: '142', unit: '', delta: '+5.8% vs yesterday', icon: 'package' };
+                    }
+                    if (id === 'drivers') {
+                        const onShift = this.drivers.filter((d) => d.status !== 'Off').length;
+                        const late = this.drivers.filter((d) => d.status === 'Late').length;
+                        return { label: 'Drivers on shift', value: onShift + ' / ' + this.drivers.length, unit: '', delta: late + ' running late', icon: 'truck' };
+                    }
+                    if (id === 'cash') {
+                        const pending = this.cash.filter((r) => r.status !== 'Confirmed');
+                        const sum = pending.reduce((total, r) => total + r.expected, 0);
+                        return { label: 'Cash to reconcile', value: this.num(sum), unit: this.currency, delta: pending.length + ' hand-ins pending', icon: 'cash' };
+                    }
+                    const open = this.tickets.filter((t) => t.status !== 'Resolved');
+                    const high = open.filter((t) => t.priority === 'High').length;
+                    return { label: 'Open tickets', value: String(open.length), unit: '', delta: high + ' high priority', icon: 'lifebuoy' };
+                },
+
+                // ---- Navigation -----------------------------------------------------------------
                 syncFromHash() {
                     const id = location.hash.slice(1);
                     this.page = this.items.some((item) => item.id === id) ? id : 'dashboard';
@@ -607,7 +998,6 @@
                     }
                     location.hash = id;
                 },
-
                 openSidebar() {
                     this.sidebarOpen = true;
                     this.$nextTick(() => this.$refs.closeBtn.focus());
@@ -620,6 +1010,7 @@
                     this.$nextTick(() => this.$refs.menuBtn.focus());
                 },
 
+                // ---- Helpers ----------------------------------------------------------------------
                 notify(message) {
                     this.toast = message;
                     clearTimeout(this.toastTimer);
@@ -629,10 +1020,13 @@
                     row.status = 'Confirmed';
                     this.notify('Hand-in confirmed for ' + row.driver + ' (demo)');
                 },
-                money(amount) {
-                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+                num(amount) {
+                    const value = Math.round(amount * this.amountScale);
+                    return (value < 0 ? '−' : '') + new Intl.NumberFormat('en-US').format(Math.abs(value));
                 },
-
+                money(amount) {
+                    return this.num(amount) + ' ' + this.currency;
+                },
                 chip(status) {
                     const tone = {
                         solid: 'border-slate-900 bg-slate-900 text-white',
@@ -643,6 +1037,63 @@
                 },
                 dot(status) {
                     return { solid: 'bg-white', alert: 'bg-brand-red-1', muted: 'bg-slate-400' }[this.tones[status]];
+                },
+
+                // ---- Marten Meet --------------------------------------------------------------------
+                micOn(p) {
+                    return p.id === 'you' ? this.meet.mic : p.mic;
+                },
+                camOn(p) {
+                    return p.id === 'you' ? this.meet.cam : p.cam;
+                },
+                speaking(p) {
+                    return this.meet.joined && this.meet.speaker === p.id && this.micOn(p);
+                },
+                controlLabel(c) {
+                    const m = this.meet;
+                    return {
+                        mic: m.mic ? 'Mute' : 'Unmute',
+                        cam: m.cam ? 'Stop video' : 'Start video',
+                        share: m.sharing ? 'Stop sharing' : 'Share screen',
+                        hand: m.hand ? 'Lower hand' : 'Raise hand',
+                        chat: 'Chat',
+                        people: 'People',
+                    }[c];
+                },
+                controlIcon(c) {
+                    const m = this.meet;
+                    return { mic: m.mic ? 'mic' : 'micOff', cam: m.cam ? 'video' : 'videoOff', share: 'monitor', hand: 'hand', chat: 'chat', people: 'users' }[c];
+                },
+                // "Flagged" = the control is in its highlighted state (muted, sharing, panel open...).
+                controlFlag(c) {
+                    const m = this.meet;
+                    return { mic: !m.mic, cam: !m.cam, share: m.sharing, hand: m.hand, chat: m.panel === 'chat', people: m.panel === 'people' }[c];
+                },
+                runControl(c) {
+                    const m = this.meet;
+                    if (c === 'mic') m.mic = !m.mic;
+                    if (c === 'cam') m.cam = !m.cam;
+                    if (c === 'share') m.sharing = !m.sharing;
+                    if (c === 'hand') m.hand = !m.hand;
+                    if (c === 'chat') m.panel = m.panel === 'chat' ? null : 'chat';
+                    if (c === 'people') m.panel = m.panel === 'people' ? null : 'people';
+                },
+                leave() {
+                    this.meet.joined = false;
+                    this.meet.sharing = false;
+                    this.meet.hand = false;
+                },
+                rejoin() {
+                    this.meet.joined = true;
+                },
+                sendMessage() {
+                    const text = this.meet.draft.trim();
+                    if (!text) {
+                        return;
+                    }
+                    this.meet.messages.push({ who: 'You', time: new Date().toTimeString().slice(0, 5), text });
+                    this.meet.draft = '';
+                    this.$nextTick(() => { this.$refs.chatLog.scrollTop = this.$refs.chatLog.scrollHeight; });
                 },
             };
         }
